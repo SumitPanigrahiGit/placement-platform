@@ -1,2 +1,11 @@
-print("Placement Platform project starting")
-print("Day 2: environment is working")
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "Placement Platform API is live"}
+
+@app.get("/status")
+def status():
+    return {"day": 3, "status": "API running successfully"}
