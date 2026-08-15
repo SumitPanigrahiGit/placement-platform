@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from auth import create_access_token, get_current_user
+from typing import List
 
 from database import engine, Base, get_db
 import models
@@ -56,3 +57,22 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/me")
 def get_my_profile(current_user: dict = Depends(get_current_user)):
     return {"logged_in_as": current_user["email"], "user_id": current_user["user_id"]}
+
+from typing import List
+
+@app.post("/postings", response_model=schemas.JobPostingOut)
+def create_posting(posting: schemas.JobPostingCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    new_posting = models.JobPosting(
+        company_name=posting.company_name,
+        role_title=posting.role_title,
+        required_skills=posting.required_skills,
+        source_url=posting.source_url
+    )
+    db.add(new_posting)
+    db.commit()
+    db.refresh(new_posting)
+    return new_posting
+
+@app.get("/postings", response_model=List[schemas.JobPostingOut])
+def list_postings(db: Session = Depends(get_db)):
+    return db.query(models.JobPosting).all()
