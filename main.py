@@ -76,3 +76,22 @@ def create_posting(posting: schemas.JobPostingCreate, db: Session = Depends(get_
 @app.get("/postings", response_model=List[schemas.JobPostingOut])
 def list_postings(db: Session = Depends(get_db)):
     return db.query(models.JobPosting).all()
+
+@app.post("/applications", response_model=schemas.ApplicationOut)
+def apply_to_posting(application: schemas.ApplicationCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    posting = db.query(models.JobPosting).filter(models.JobPosting.id == application.posting_id).first()
+    if not posting:
+        raise HTTPException(status_code=404, detail="Job posting not found")
+
+    new_application = models.Application(
+        user_id=current_user["user_id"],
+        posting_id=application.posting_id
+    )
+    db.add(new_application)
+    db.commit()
+    db.refresh(new_application)
+    return new_application
+
+@app.get("/applications/me", response_model=List[schemas.ApplicationOut])
+def my_applications(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    return db.query(models.Application).filter(models.Application.user_id == current_user["user_id"]).all()

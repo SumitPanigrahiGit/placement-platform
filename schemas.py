@@ -21,3 +21,14 @@ class JobPostingOut(JobPostingCreate):
 
     class Config:
         from_attributes = True
+
+class ApplicationCreate(BaseModel):
+    posting_id: int
+
+class ApplicationOut(BaseModel):
+    id: int
+    posting_id: int
+    status: str
+
+    class Config:
+        from_attributes = True
