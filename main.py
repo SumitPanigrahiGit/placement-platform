@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from auth import create_access_token
+from auth import create_access_token, get_current_user
 
 from database import engine, Base, get_db
 import models
@@ -52,3 +52,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     token = create_access_token(data={"sub": db_user.email, "user_id": db_user.id})
 
     return {"access_token": token, "token_type": "bearer"}
+
+@app.get("/me")
+def get_my_profile(current_user: dict = Depends(get_current_user)):
+    return {"logged_in_as": current_user["email"], "user_id": current_user["user_id"]}
