@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from auth import create_access_token, get_current_user
 from typing import List
+from pipeline import fetch_and_store_jobs, start_scheduler
 
 from database import engine, Base, get_db
 import models
@@ -11,6 +12,7 @@ import schemas
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
+start_scheduler()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -95,3 +97,8 @@ def apply_to_posting(application: schemas.ApplicationCreate, db: Session = Depen
 @app.get("/applications/me", response_model=List[schemas.ApplicationOut])
 def my_applications(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return db.query(models.Application).filter(models.Application.user_id == current_user["user_id"]).all()
+
+@app.post("/pipeline/run-now")
+def run_pipeline_now():
+    fetch_and_store_jobs()
+    return {"message": "Pipeline triggered manually"}
