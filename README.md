@@ -28,3 +28,6 @@ A backend API for tracking job/internship postings and applications, built as pa
 - Automated data pipeline to fetch real job postings
 - Deployment to cloud (Render/AWS)
 - Docker containerization
+
+## Live Demo
+https://placement-platform-api.onrender.com/docs
