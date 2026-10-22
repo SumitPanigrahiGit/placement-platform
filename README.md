@@ -30,4 +30,4 @@ A backend API for tracking job/internship postings and applications, built as pa
 - Docker containerization
 
 ## Live Demo
-https://placement-platform-api.onrender.com/docs
+[https://placement-platform-api.onrender.com/docs](https://placement-platform-3.onrender.com/docs)
