@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from auth import create_access_token, get_current_user
@@ -10,6 +13,11 @@ import models
 import schemas
 
 app = FastAPI()
+
+# Rate limiting: slows down password guessing and abuse (per client IP)
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 Base.metadata.create_all(bind=engine)
 start_scheduler()
@@ -25,7 +33,8 @@ def status():
     return {"day": 5, "status": "Signup endpoint ready"}
 
 @app.post("/signup")
-def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def signup(request: Request, user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -46,7 +55,8 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return {"id": new_user.id, "name": new_user.name, "email": new_user.email}
 
 @app.post("/login")
-def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
 
     if not db_user or not pwd_context.verify(user.password, db_user.password_hash):
@@ -59,8 +69,6 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/me")
 def get_my_profile(current_user: dict = Depends(get_current_user)):
     return {"logged_in_as": current_user["email"], "user_id": current_user["user_id"]}
-
-from typing import List
 
 @app.post("/postings", response_model=schemas.JobPostingOut)
 def create_posting(posting: schemas.JobPostingCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
@@ -99,6 +107,7 @@ def my_applications(db: Session = Depends(get_db), current_user: dict = Depends(
     return db.query(models.Application).filter(models.Application.user_id == current_user["user_id"]).all()
 
 @app.post("/pipeline/run-now")
-def run_pipeline_now():
+@limiter.limit("2/minute")
+def run_pipeline_now(request: Request, current_user: dict = Depends(get_current_user)):
     fetch_and_store_jobs()
     return {"message": "Pipeline triggered manually"}

@@ -9,3 +9,5 @@ python-jose[cryptography]
 apscheduler
 requests
 pydantic[email]
+pydantic[email]
+slowapi
