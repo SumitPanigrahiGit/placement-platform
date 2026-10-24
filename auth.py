@@ -1,7 +1,15 @@
+import os
+import secrets
 from datetime import datetime, timedelta
 from jose import jwt
 
-SECRET_KEY = "supersecretkey123changeme"
+# JWT signing key comes from the environment. Never hardcode it.
+# If it is missing we fall back to a random per-process key (safe, but every
+# restart logs everyone out), so set SECRET_KEY in production.
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_urlsafe(48)
+    print("WARNING: SECRET_KEY not set; using a temporary random key.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

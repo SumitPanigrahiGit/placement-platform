@@ -1,0 +1,7 @@
+.env
+*.pem
+*.key
+.aws/
+.git
+__pycache__/
+*.pyc
