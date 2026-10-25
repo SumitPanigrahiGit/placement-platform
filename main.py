@@ -7,6 +7,7 @@ from passlib.context import CryptContext
 from auth import create_access_token, get_current_user
 from typing import List
 from pipeline import fetch_and_store_jobs, start_scheduler
+from fastapi.staticfiles import StaticFiles
 
 from database import engine, Base, get_db
 import models
@@ -111,3 +112,5 @@ def my_applications(db: Session = Depends(get_db), current_user: dict = Depends(
 def run_pipeline_now(request: Request, current_user: dict = Depends(get_current_user)):
     fetch_and_store_jobs()
     return {"message": "Pipeline triggered manually"}
+
+app.mount("/app", StaticFiles(directory="static", html=True), name="static")
