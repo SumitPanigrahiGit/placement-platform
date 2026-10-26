@@ -1,3 +1,5 @@
+![CI](https://github.com/SumitPanigrahiGit/placement-platform/actions/workflows/ci.yml/badge.svg)
+
 # Placement Platform API
 
 A backend API for tracking job/internship postings and applications, built as part of my CSE portfolio project.
