@@ -8,3 +8,6 @@ venv/
 .venv/
 test.db
 test.db
+
+test_ci.db
+test.db

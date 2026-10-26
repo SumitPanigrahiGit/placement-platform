@@ -1,13 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, Query
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from auth import create_access_token, get_current_user
 from typing import List
 from pipeline import fetch_and_store_jobs, start_scheduler
-from fastapi.staticfiles import StaticFiles
 
 from database import engine, Base, get_db
 import models
@@ -20,7 +21,6 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-Base.metadata.create_all(bind=engine)
 start_scheduler()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -71,6 +71,8 @@ def login(request: Request, user: schemas.UserLogin, db: Session = Depends(get_d
 def get_my_profile(current_user: dict = Depends(get_current_user)):
     return {"logged_in_as": current_user["email"], "user_id": current_user["user_id"]}
 
+from typing import List
+
 @app.post("/postings", response_model=schemas.JobPostingOut)
 def create_posting(posting: schemas.JobPostingCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     new_posting = models.JobPosting(
@@ -84,9 +86,29 @@ def create_posting(posting: schemas.JobPostingCreate, db: Session = Depends(get_
     db.refresh(new_posting)
     return new_posting
 
+def _like(text: str) -> str:
+    """Escape % and _ so user input is matched literally, then wrap for a contains-search."""
+    safe = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{safe}%"
+
 @app.get("/postings", response_model=List[schemas.JobPostingOut])
-def list_postings(db: Session = Depends(get_db)):
-    return db.query(models.JobPosting).all()
+def list_postings(
+    q: str = Query("", max_length=100, description="search in role title or company"),
+    skill: str = Query("", max_length=50, description="filter by a required skill"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.JobPosting)
+    if q:
+        like = _like(q)
+        query = query.filter(or_(
+            models.JobPosting.role_title.ilike(like, escape="\\"),
+            models.JobPosting.company_name.ilike(like, escape="\\"),
+        ))
+    if skill:
+        query = query.filter(models.JobPosting.required_skills.ilike(_like(skill), escape="\\"))
+    return query.order_by(models.JobPosting.id.desc()).offset(offset).limit(limit).all()
 
 @app.post("/applications", response_model=schemas.ApplicationOut)
 def apply_to_posting(application: schemas.ApplicationCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):

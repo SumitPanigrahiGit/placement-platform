@@ -28,8 +28,8 @@ class Application(Base):
     __tablename__ = "applications"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    posting_id = Column(Integer, ForeignKey("job_postings.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    posting_id = Column(Integer, ForeignKey("job_postings.id"), nullable=False, index=True)
     status = Column(String(50), default="applied")
     applied_at = Column(DateTime(timezone=True), server_default=func.now())
 
