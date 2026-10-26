@@ -11,3 +11,4 @@ requests
 pydantic[email]
 pydantic[email]
 slowapi
+alembic
